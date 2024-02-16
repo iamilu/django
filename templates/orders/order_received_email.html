@@ -1,0 +1,9 @@
+<!-- give protection from cross site forgery and used while sending email-->
+{% autoescape off %}
+
+Hi {{ user.first_name }},
+
+Your order has been received.
+Order Number: {{ order.order_number }}
+
+{% endautoescape %}
