@@ -151,10 +151,38 @@ def payments(request):
     data = {
         'order_number': order.order_number,
         'payment_id': payment.payment_id,
+        'status': payment.status,
     }
 
     # sending the json response of data back to the java script present in payments.html
     return JsonResponse(data)
 
 def order_complete(request):
-    return render(request, 'orders/order_complete.html')
+    # get order_number and payment_id from query string
+    order_number = request.GET.get('order_number')
+    payment_id = request.GET.get('payment_id')
+
+    try:
+        order = Order.objects.get(order_number=order_number, is_ordered=True)
+        payment = Payment.objects.get(payment_id=payment_id)
+        order_product = OrderProduct.objects.filter(order=order, payment=payment)
+        
+        total = 0
+        for item in order_product:
+            total += item.product_price * item.quantity
+        
+        tax = total * 0.02
+        grand_total = total + tax
+
+        context = {
+            'order': order,
+            'payment': payment,
+            'order_product': order_product,
+            'total': total,
+            'tax': tax,
+            'grand_total': grand_total,
+        }
+    except (Order.DoesNotExist, Payment.DoesNotExist, OrderProduct.DoesNotExist):
+        return redirect ('store')
+
+    return render(request, 'orders/order_complete.html', context)

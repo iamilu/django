@@ -2,6 +2,11 @@ from django.db import models
 from category.models import Category
 from django.urls import reverse
 
+from accounts.models import Account
+
+from django.db.models import Avg, Count
+import math
+
 # Create your models here.
 class Product(models.Model):
     product_name = models.CharField(max_length=200, unique=True)
@@ -21,6 +26,50 @@ class Product(models.Model):
 
     def __str__(self):
         return self.product_name
+
+    # code to get average rating of a product
+    def avgRating(self):
+        avg_rating = 0
+        # get the list of reviews of a product
+        reviews = ReviewRating.objects.filter(product=self, status=True)
+        # calculate the avg rating from the list of reviews of a product using rating field
+        avg_rating_cal = reviews.aggregate(avg_rating_params=Avg('rating'))
+
+        if avg_rating_cal:
+            avg_rating = float(avg_rating_cal['avg_rating_params'])
+        if avg_rating < 0.5:
+            avg_rating = math.floor(avg_rating)
+        elif avg_rating > 0.5:
+            avg_rating = math.ceil(avg_rating)
+        if avg_rating < 1.5:
+            avg_rating = math.floor(avg_rating)
+        elif avg_rating > 1.5:
+            avg_rating = math.ceil(avg_rating)
+        if avg_rating < 2.5:
+            avg_rating = math.floor(avg_rating)
+        elif avg_rating > 2.5:
+            avg_rating = math.ceil(avg_rating)
+        if avg_rating < 3.5:
+            avg_rating = math.floor(avg_rating)
+        elif avg_rating > 3.5:
+            avg_rating = math.ceil(avg_rating)
+        if avg_rating < 4.5:
+            avg_rating = math.floor(avg_rating)
+        elif avg_rating > 4.5:
+            avg_rating = math.ceil(avg_rating)
+
+        return avg_rating
+    
+    # code to get total number of reviews of a product
+    def reviewCount(self):
+        review_count = 0
+        # get the list of reviews of a product
+        reviews = ReviewRating.objects.filter(product=self, status=True)
+        # calculate the avg rating from the list of reviews of a product using rating field
+        review_count_cal = reviews.aggregate(review_count_params=Count('id'))
+        if review_count_cal:
+            review_count = int(review_count_cal['review_count_params'])
+        return review_count
 
 # this will be used to separate variation category by color and size
 class VariationManager(models.Manager):
@@ -71,3 +120,22 @@ class Variation(models.Model):
     [variation_obj.product.product_name for variation_obj in v11 ]
     [variation_obj.variation_value for variation_obj in v11 ]
 '''
+
+# for review and rating
+class ReviewRating(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    user = models.ForeignKey(Account, on_delete=models.CASCADE)
+    subject = models.CharField(max_length=100, blank=True)
+    review = models.CharField(max_length=500, blank=True)
+    rating = models.FloatField()
+    ip = models.GenericIPAddressField()
+    status = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Review Rating'
+        verbose_name_plural = 'Review Ratings'
+
+    def __str__(self):
+        return self.subject

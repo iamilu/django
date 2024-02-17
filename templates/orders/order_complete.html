@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% load static %}
+{% load mathfilters %}
 
 {% block content %}
 
@@ -32,10 +33,10 @@
                             <div class="invoice-from">
                                 <ul class="list-unstyled text-right">
                                     <li><strong>Invoiced To</strong></li>
-                                    <li>Jakob Smith</li>
-                                    <li>Roupark 37</li>
-                                    <li>New York, NY, 2014</li>
-                                    <li>USA</li>
+                                    <li>{{ order.full_name }}</li>
+                                    <li>{{ order.full_address }}</li>
+                                    <li>{{ order.city }} - {{ order.pincode }}</li>
+                                    <li>{{ order.state }}, {{ order.country }}</li>
                                 </ul>
                             </div>
                         </div>
@@ -45,10 +46,10 @@
                             <div class="invoice-details mt25">
                                 <div class="well">
                                     <ul class="list-unstyled mb0">
-                                        <li><strong>Order</strong> #</li>
-                                        <li><strong>Transaction</strong> #</li>
-                                        <li><strong>Order Date:</strong> Monday, October 10th, 2015</li>
-                                        <li><strong>Status:</strong> PAID</li>
+                                        <li><strong>Order ID:</strong> {{ order.order_number }} </li>
+                                        <li><strong>Transaction ID:</strong> {{ payment.payment_id }} </li>
+                                        <li><strong>Order Date:</strong> {{ order.created_at }} </li>
+                                        <li><strong>Status:</strong> {{ payment.status }}</li>
                                     </ul>
                                 </div>
                             </div>
@@ -58,48 +59,50 @@
                                     <table class="table table-bordered">
                                         <thead>
                                             <tr>
-                                                <th class="per70 text-center">Description</th>
-                                                <th class="per5 text-center">Qty</th>
-                                                <th class="per25 text-center">Total</th>
+                                                <th class="per70 text-center">Product Name</th>
+                                                <th class="per5 text-center">Quantity</th>
+                                                <th class="per25 text-center">Price</th>
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            {% for item in order_product %}
                                             <tr>
-                                                <td>1024MB Cloud 2.0 Server - elisium.dynamic.com (12/04/2014 - 01/03/2015)</td>
-                                                <td class="text-center">1</td>
-                                                <td class="text-center">$25.00 USD</td>
+                                                <td class="text-center">
+                                                    {{ item.product.product_name }}
+                                                    <br>
+                                                    {% if item.variation.all %}
+                                                        {% for i in item.variation.all %}
+                                                            <small>{{ i.variation_category | capfirst }}: {{ i.variation_value | capfirst }}</small>
+                                                            <br>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-center">{{ item.quantity }}</td>
+                                                <td class="text-center">${{ item.product_price | mul:item.quantity }}</td>
                                             </tr>
-                                            <tr>
-                                                <td>Logo design</td>
-                                                <td class="text-center">1</td>
-                                                <td class="text-center">$200.00 USD</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Backup - 1024MB Cloud 2.0 Server - elisium.dynamic.com</td>
-                                                <td class="text-center">12</td>
-                                                <td class="text-center">$12.00 USD</td>
-                                            </tr>
+                                            {% endfor %}
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <th colspan="2" class="text-right">Sub Total:</th>
-                                                <th class="text-center">$237.00 USD</th>
+                                                <th colspan="2" class="text-center"> Total:</th>
+                                                <th class="text-center">${{ total }}</th>
                                             </tr>
                                             <tr>
-                                                <th colspan="2" class="text-right">Tax:</th>
-                                                <th class="text-center">$47.40 USD</th>
+                                                <th colspan="2" class="text-center">Tax:</th>
+                                                <th class="text-center">${{ tax }}</th>
                                             </tr>
                                             
                                             <tr>
-                                                <th colspan="2" class="text-right">Grand Total:</th>
-                                                <th class="text-center">$284.4.40 USD</th>
+                                                <th colspan="2" class="text-center">Grand Total:</th>
+                                                <th class="text-center">${{ grand_total }}</th>
                                             </tr>
                                         </tfoot>
                                     </table>
                                 </div>
                             </div>
                             <div class="invoice-footer mt25">
-                                <p class="text-center">Thank you for shopping with us!</p>
+                                <br>
+                                <p class="text-center">Thank You for Shopping with us!</p>
                             </div>
                         </div>
                         <!-- col-lg-12 end here -->

@@ -59,6 +59,9 @@ class Account(AbstractBaseUser):
     #we are using MyAccountManager for all the operations
     objects = MyAccountManager()
 
+    def full_name(self):
+        return self.first_name + ' ' + self.last_name
+
     #in template we will get object  with email address
     def __str__(self):
         return self.email   

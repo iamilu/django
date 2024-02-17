@@ -150,6 +150,8 @@
   var order_number = "{{ order.order_number }}"
   var payment_method = "PayPal"
 
+  var redirect_url = "{% url 'order_complete' %}"
+
   // Render the PayPal button into #paypal-button-container
   paypal.Buttons({
 
@@ -197,6 +199,10 @@
             .then((data) => {
               console.log('success: ', data);
               console.log('tranaction is completed');
+
+              // after sucessful payment, redirect user to the order complete page
+              // window.location.href = redirect_url + '?order_number=' + order_number + '&payment_id=' + details.id;
+              window.location.href = redirect_url + '?order_number=' + data.order_number + '&payment_id=' + data.payment_id;
             });
           }
         });

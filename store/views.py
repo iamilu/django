@@ -1,6 +1,6 @@
-from django.shortcuts import render, get_object_or_404, get_list_or_404
+from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
 
-from .models import Product
+from .models import Product, ReviewRating
 from category.models import Category
 
 from carts.models import Cart, CartItem
@@ -10,6 +10,11 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 
 # Q is used to use OR operator in ORM complex queries
 from django.db.models import Q
+
+from .forms import ReviewForm
+from django.contrib import messages
+
+from orders.models import OrderProduct
 
 # Create your views here.
 def store(request, category_slug=None):
@@ -52,9 +57,24 @@ def product_detail(request, category_slug, product_slug):
             is_product_in_cart = CartItem.objects.filter(cart=cart, product=single_product).exists()
     except Exception as e:
         raise e
+    
+    # to check if the user has ordered the product or not from order product model
+    if request.user.is_authenticated:
+        try:
+            order_product = OrderProduct.objects.filter(user=request.user, product__id=single_product.id).exists()
+        except OrderProduct.DoesNotExist:
+            order_product = None
+    else:
+        order_product = None
+
+    # get all the reviews and list and show in the product detail page
+    reviews = ReviewRating.objects.filter(product__id=single_product.id, status=True)
+
     context = {
         'single_product': single_product,
-        'is_product_in_cart': is_product_in_cart
+        'is_product_in_cart': is_product_in_cart,
+        'order_product': order_product,
+        'reviews': reviews,
     }
     return render(request, 'store/product_detail.html', context)
 
@@ -71,3 +91,36 @@ def search(request):
             'products_count': products_count
         }
     return render(request, 'store/store.html', context)
+
+def submit_review(request, product_id):
+    url = request.META.get('HTTP_REFERER') # store previous url
+    if request.method == "POST":
+        try:
+            reviews = ReviewRating.objects.get(user__id=request.user.id, product__id=product_id) 
+            # double underscore is used to access the id field of user and product model as it is a foreignkey relationship with review model
+            form = ReviewForm(request.POST, instance=reviews)
+            # by passing instance, it will check if already a review is present or not and if present, then it will update the exisitng review
+            # if we don't pass instance, then by default it will create a new form
+            form.save()
+            messages.success(request, 'Thank you! Your review has been updated')
+        except ReviewRating.DoesNotExist:
+            form = ReviewForm(request.POST)
+            if form.is_valid():
+                data = ReviewRating()
+                data.subject = form.cleaned_data['subject']
+                data.rating = form.cleaned_data['rating']
+                data.review = form.cleaned_data['review']
+                data.ip = request.META.get('REMOTE_ADDR') # store IP address
+                data.product_id = product_id # OR data.product = product (product=Product.objects.get(id=product_id))
+                data.user = request.user # OR data.user_id = request.user.id
+                data.save()
+                # above OR
+                # subject = form.cleaned_data['subject']
+                # rating = form.cleaned_data['rating']
+                # ... get other fields
+                # review = ReviewRating(
+                #     subject=subject, rating=rating, .... other fields
+                # )
+                # review.save()
+                messages.success(request, 'Thank you! Your review has been submitted')
+        return redirect(url)
