@@ -33,6 +33,21 @@
 			<figcaption class="info-wrap">
 				<a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
 				<div class="price mt-1">${{ product.price }}</div> <!-- price-wrap.// -->
+				{% if product.avgRating and product.reviewCount %}
+					<div class="rating-star">
+						<span>
+							<!-- use of font awesome star icon -->
+							<i class="fa {% if product.avgRating == 0.5 %}fa-star-half-stroke{% elif product.avgRating >= 1.0 %}fa-star{% endif %}" arial-hidden="true"></i>
+							<i class="fa {% if product.avgRating == 1.5 %}fa-star-half-stroke{% elif product.avgRating >= 2.0 %}fa-star{% endif %}" arial-hidden="true"></i>
+							<i class="fa {% if product.avgRating == 2.5 %}fa-star-half-stroke{% elif product.avgRating >= 3.0 %}fa-star{% endif %}" arial-hidden="true"></i>
+							<i class="fa {% if product.avgRating == 3.5 %}fa-star-half-stroke{% elif product.avgRating >= 4.0 %}fa-star{% endif %}" arial-hidden="true"></i>
+							<i class="fa {% if product.avgRating == 4.5 %}fa-star-half-stroke{% elif product.avgRating >= 5.0 %}fa-star{% endif %}" arial-hidden="true"></i>
+							<span>{{ product.reviewCount }} reviews</span>
+						</span>
+					</div>
+				{% else %}
+					<span>No Review is available</span>
+				{% endif %}
 			</figcaption>
 		</div>
 	</div> <!-- col.// -->

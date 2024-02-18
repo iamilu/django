@@ -64,10 +64,26 @@ class Account(AbstractBaseUser):
 
     #in template we will get object  with email address
     def __str__(self):
-        return self.email   
+        return self.email
     
     def has_perm(self, perm, obj=None):
         return self.is_admin
     
     def has_module_perms(self, add_label):
         return True
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(Account, on_delete=models.CASCADE) #one user profile for one user account
+    address_line_1 = models.CharField(max_length=100, blank=True)
+    address_line_2 = models.CharField(max_length=100, blank=True)
+    profile_pic = models.ImageField(upload_to='userprofile', blank=True) # userprofile folder will get created in media folder and store profile pic
+    city = models.CharField(max_length=100, blank=True)
+    pincode = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=100, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+
+    def __str__(self):
+        return self.user.first_name
+    
+    def full_address(self):
+        return self.address_line_1 + ' ' + self.address_line_2

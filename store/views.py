@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
 
-from .models import Product, ReviewRating
+from .models import Product, ReviewRating, productGallery
 from category.models import Category
 
 from carts.models import Cart, CartItem
@@ -70,11 +70,15 @@ def product_detail(request, category_slug, product_slug):
     # get all the reviews and list and show in the product detail page
     reviews = ReviewRating.objects.filter(product__id=single_product.id, status=True)
 
+    # get product gallery
+    product_gallery = productGallery.objects.filter(product=single_product)
+
     context = {
         'single_product': single_product,
         'is_product_in_cart': is_product_in_cart,
         'order_product': order_product,
         'reviews': reviews,
+        'product_gallery': product_gallery,
     }
     return render(request, 'store/product_detail.html', context)
 

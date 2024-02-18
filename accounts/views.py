@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
-from .forms import RegistrationForm
-from .models import Account
+from .forms import RegistrationForm, UserForm, UserProfileForm
+from .models import Account, UserProfile
 from django.contrib import messages
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
@@ -19,6 +19,7 @@ from carts.views import get_cart_id
 from carts.models import Cart, CartItem
 
 import requests
+from orders.models import Order, OrderProduct
 
 # Create your views here.
 def register(request):
@@ -41,6 +42,12 @@ def register(request):
             )
             user.phone = phone
             user.save()
+
+            # create a dummy user profile while the registration process, so edit profile option is enabled, otherwise it will throw user profile 404 not found
+            user_profile = UserProfile()
+            user_profile.user = user
+            user_profile.profile_pic = 'default/default_profile_pic.jpg'
+            user_profile.save()
 
             # USER ACTIVATATION CODE
             current_site = get_current_site(request)
@@ -160,7 +167,16 @@ def activate(request, uidb64, token):
 
 @login_required
 def dashboard(request):
-    return render(request, 'accounts/dashboard.html')
+    orders = Order.objects.filter(user=request.user, is_ordered=True).order_by('-created_at')
+    orders_count = orders.count()
+    
+    user_profile = UserProfile.objects.get(user=request.user)
+
+    context = {
+        'orders_count': orders_count,
+        'user_profile': user_profile,
+    }
+    return render(request, 'accounts/dashboard.html', context)
 
 def forgotPassword(request):
     if request.method == "POST":
@@ -222,3 +238,82 @@ def resetPassword(request):
             messages.error(request, 'Password does not match')
             return redirect('resetPassword')
     return render(request, 'accounts/resetPassword.html')
+
+@login_required(login_url='login')
+def my_orders(request):
+    orders = Order.objects.filter(user=request.user, is_ordered=True).order_by('-created_at') # - will give in descending order
+    context = {
+        'orders': orders
+    }
+    return render(request, 'accounts/my_orders.html', context)
+
+@login_required(login_url='login')
+def edit_profile(request):
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        user_profile = None
+    
+    if request.method == "POST":
+        user_form = UserForm(request.POST, instance=request.user)
+        user_profile_form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
+
+        if user_form.is_valid() and user_profile_form.is_valid():
+            user_form.save()
+            user_profile_form.save()
+            messages.success(request, 'Your profile has been updated')
+            return redirect('edit_profile')
+    else:
+        user_form = UserForm(instance=request.user)
+        user_profile_form = UserProfileForm(instance=user_profile)
+
+    context = {
+        'user_form': user_form,
+        'user_profile_form': user_profile_form,
+        'user_profile': user_profile,
+    }
+    return render(request, 'accounts/edit_profile.html', context)
+
+@login_required(login_url='login')
+def change_password(request):
+    user_profile = UserProfile.objects.get(user=request.user)
+    if request.method == "POST":
+        current_password = request.POST['current_password']
+        new_password = request.POST['new_password']
+        confirm_password = request.POST['confirm_password']
+
+        user = Account.objects.get(email__exact=request.user.email)
+        if new_password == confirm_password:
+            check_current_password = user.check_password(current_password) # to check if current password is correct or not
+            # check_password() is an inbuilt method which will convert current password in hashed format and then check if the current password is correct or not and return True or False
+            if check_current_password:
+                user.set_password(new_password)
+                user.save()
+                # user can logged out from the system once password is reset
+                # auth.logout(request)
+                # django will automatically log you out
+                messages.success(request, 'Your password is updated successfully!')
+                return redirect('login')
+            else:
+                messages.error(request, 'Please enter correct current password')
+                return redirect('change_password')
+        else:
+            messages.error(request, 'Password does not match ')
+            return redirect('change_password')
+    context = {
+        'user_profile': user_profile,
+    }
+    return render(request, 'accounts/change_password.html', context)
+
+@login_required(login_url='login')
+def order_detail(request, order_number):
+    order = Order.objects.get(order_number=order_number)
+    order_detail = OrderProduct.objects.filter(order__order_number=order_number, is_ordered=True)
+    # order is a foreign key in OrderProduct model, so we can use order_number of Order model by order__order_number inside OrderPorduct model
+    # OR
+    # order_detail = OrderProduct.objects.filter(order=order, is_ordered=True)
+    context = {
+        'order': order,
+        'order_detail': order_detail,
+    }
+    return render(request, 'accounts/order_detail.html', context)

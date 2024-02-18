@@ -36,7 +36,7 @@ class Order(models.Model):
     city = models.CharField(max_length=100)
     pincode = models.CharField(max_length=100)
     order_note = models.CharField(max_length=100, blank=True)
-    order_total = models.FloatField()
+    order_total = models.FloatField() # this is grand total (total + tax)
     tax = models.FloatField()
     status = models.CharField(max_length=100, choices=STATUS, default='New')
     ip = models.CharField(max_length=100, blank=True)

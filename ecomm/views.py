@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from store.models import Product
+from store.models import Product, ReviewRating
 from carts.models import Cart
 from carts.views import get_cart_id
 
@@ -16,8 +16,14 @@ def index(request):
         )
     cart.save()
 
-    products = Product.objects.all().filter(is_available=True)
+    products = Product.objects.all().filter(is_available=True).order_by('created_date')
+
+    # get review rating
+    for product in products:
+        reviews = ReviewRating.objects.filter(product=product, status=True)
+
     context = {
-        'products': products
+        'products': products,
+        'reviews': reviews,
     }
     return render(request, 'index.html', context)

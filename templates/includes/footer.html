@@ -19,3 +19,21 @@
 	</div><!-- //container -->
 </footer>
 <!-- ========================= FOOTER END // ========================= -->
+
+<!-- jqeury cdn -->
+<script src="jquery-3.7.1.min.js"></script>
+
+<script>
+	$(document).ready(function(){
+		$('.thumb a').click(function(e){
+			e.preventDefault();
+			$('.main-image img').attr('src', $(this).attr("href"));
+		})
+	})
+</script>
+
+<!-- this script is used to prevent the product gallery images to be opened in new windows
+	and also used to open product gallery images in the main image field -->
+
+</body>
+</html>
