@@ -62,6 +62,11 @@ class Account(AbstractBaseUser):
     def full_name(self):
         return self.first_name + ' ' + self.last_name
 
+    # to get user profile picture
+    def get_profile_pic(self, object):
+        user_profile = UserProfile.objects.get(user=object)
+        return user_profile.profile_pic.url
+
     #in template we will get object  with email address
     def __str__(self):
         return self.email

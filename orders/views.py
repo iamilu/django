@@ -13,6 +13,8 @@ import json
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
 
+from accounts.models import UserProfile
+
 # Create your views here.
 def place_order(request, total=0, qunatity=0, tax=0, grand_total=0):
     current_user = request.user
@@ -66,6 +68,16 @@ def place_order(request, total=0, qunatity=0, tax=0, grand_total=0):
                     'tax': tax,
                     'grand_total': grand_total
                 }
+
+                # update address of the user in user profile model
+                user_profile = UserProfile.objects.get(user=request.user)
+                user_profile.address_line_1 = form.cleaned_data.get('address_line_1')
+                user_profile.address_line_2 = form.cleaned_data.get('address_line_2')
+                user_profile.city = form.cleaned_data.get('city')
+                user_profile.pincode = form.cleaned_data.get('pincode')
+                user_profile.state = form.cleaned_data.get('state')
+                user_profile.country = form.cleaned_data.get('country')
+                user_profile.save()
                 
                 return render(request, 'orders/payments.html', context)
             else:
@@ -159,6 +171,7 @@ def payments(request):
 
 def order_complete(request):
     # get order_number and payment_id from query string
+    # redirect after hitting paypal button
     order_number = request.GET.get('order_number')
     payment_id = request.GET.get('payment_id')
 

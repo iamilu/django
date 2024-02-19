@@ -180,6 +180,7 @@
           sendData();
           function sendData(){
             // fetch api is used to send data from frontend to backend to the given url (corresponding view will get called)
+            // you will get the body after hitting paypal button
             fetch(url, {
               method: "POST",
               headers: {

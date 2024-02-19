@@ -2,6 +2,8 @@
 
 {% load static %}
 
+{% load mathfilters %}
+
 {% block content %}
 <!-- ========================= SECTION MAIN ========================= -->
 <section class="section-intro padding-y-sm">
@@ -32,7 +34,7 @@
 			<a href="{{ product.get_url }}" class="img-wrap"> <img src="{{ product.image.url }}"> </a>
 			<figcaption class="info-wrap">
 				<a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
-				<div class="price mt-1">${{ product.price }}</div> <!-- price-wrap.// -->
+				<div class="price mt-1">${{ product.price }} <del class="price-old">${{ product.price | mul:1.25 }}</del></div> <!-- price-wrap.// -->
 				{% if product.avgRating and product.reviewCount %}
 					<div class="rating-star">
 						<span>

@@ -15,6 +15,7 @@ from .forms import ReviewForm
 from django.contrib import messages
 
 from orders.models import OrderProduct
+from accounts.models import UserProfile
 
 # Create your views here.
 def store(request, category_slug=None):
@@ -33,7 +34,7 @@ def store(request, category_slug=None):
         products_count = Product.objects.count()
 
     # use of paginator
-    paginator = Paginator(products, 3) # number of products you want to see on a single page
+    paginator = Paginator(products, 10) # number of products you want to see on a single page
     page = request.GET.get('page') # get page number from url query string /store?page=2
     products_per_page = paginator.get_page(page) # fetch only number of products defined above
 
@@ -69,6 +70,13 @@ def product_detail(request, category_slug, product_slug):
 
     # get all the reviews and list and show in the product detail page
     reviews = ReviewRating.objects.filter(product__id=single_product.id, status=True)
+
+    # set profile picture url to each instance of review (coming from Account Model - usage of bound method concept)
+    for review in reviews:
+        review.get_profile_pic_url = review.user.get_profile_pic(review.user)
+    
+    for review in reviews:
+        print(review.get_profile_pic_url)
 
     # get product gallery
     product_gallery = productGallery.objects.filter(product=single_product)
