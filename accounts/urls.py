@@ -1,9 +1,10 @@
 from django.urls import path, include
-from .views import register, login, logout, activate, dashboard, forgotPassword, resetPassword_validation, resetPassword, my_orders, edit_profile, change_password, order_detail
+from .views import register, login, otp, logout, activate, dashboard, forgotPassword, resetPassword_validation, resetPassword, my_orders, edit_profile, change_password, order_detail
 
 urlpatterns = [
     path('register/', register, name='register'),
     path('login/', login, name='login'),
+    path('otp/', otp, name='otp'),
     path('logout/', logout, name='logout'),
     path('dashboard/', dashboard, name='dashboard'),
     path('', dashboard, name='dashboard'),

@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .forms import RegistrationForm, UserForm, UserProfileForm
 from .models import Account, UserProfile
 from django.contrib import messages
@@ -20,6 +20,10 @@ from carts.models import Cart, CartItem
 
 import requests
 from orders.models import Order, OrderProduct
+
+from .utils import send_otp
+from datetime import datetime
+import pyotp
 
 # Create your views here.
 def register(request):
@@ -78,69 +82,119 @@ def login(request):
 
         user = auth.authenticate(request, email=email, password=password)
         if user:
-            # TO ASSIGN CART ID TO THE LOGGED IN USER, so we can see list of crat items, selected before user is logged in, after user is logged in
-            try:
-                cart = Cart.objects.get(cart_id=get_cart_id(request))
-                is_cart_item_exists = CartItem.objects.filter(cart=cart).exists()
-                if is_cart_item_exists:
-                    # GROUPING product variation before and after user logged in
 
-                    #get product variation when user is not logged in (by using cart id)
-                    product_variation_non_logged_in = []
-                    cart_items = CartItem.objects.filter(cart=cart)
-                    for cart_item in cart_items:
-                        variation = cart_item.variation.all()
-                        product_variation_non_logged_in.append(list(variation))
-                    # print('-------------- non logged in--------')
-                    # print(product_variation_non_logged_in) #[[<Variation: Blue>, <Variation: Small>]]
-
-                    #get product variation when user is logged in (by using user)
-                    product_variation_logged_in = []
-                    cart_item_id_list = []
-                    cart_items = CartItem.objects.filter(user=user)
-                    for cart_item in cart_items:
-                        variation = cart_item.variation.all()
-                        product_variation_logged_in.append(list(variation))
-                        cart_item_id_list.append(cart_item.id)
-                    # print('---------logged in-----------')
-                    # print(product_variation_logged_in) # [[<Variation: Black>, <Variation: Medium>], [<Variation: White>, <Variation: Medium>]]
-
-                    # if product variation (when user is not logged in) present in product variation (when user is logged in),
-                    # then increment cart item quantity by 1 and assign the user field of cart item model to the logged in user
-                    # else assign the user field of cart item model to the logged in user
-                    for product_variation in product_variation_non_logged_in:
-                        if product_variation in product_variation_logged_in:
-                            index = product_variation_logged_in.index(product_variation)
-                            cart_item_id = cart_item_id_list[index]
-                            cart_item = CartItem.objects.get(id=cart_item_id)
-                            cart_item.quantity += 1
-                            cart_item.user = user
-                            cart_item.save()
-                        else:
-                            cart_items_non_logged_in = CartItem.objects.filter(cart=cart)
-                            for cart_item in cart_items_non_logged_in:
-                                cart_item.user = user # assign the user field of cart item model to the logged in user
-                                cart_item.save()
-            except:
-                pass
-            auth.login(request, user)
-            messages.success(request, 'You are now logged in')
-            url = request.META.get('HTTP_REFERER') # this will give the previous url
-            print(url) # http://127.0.0.1:8000/accounts/login/?next=/cart/checkout/
-            try:
-                query = requests.utils.urlparse(url).query
-                print(query) # next=/cart/checkout/
-                params = dict(x.split('=') for x in query.split('&'))
-                print(params) # {'next': '/cart/checkout/'}
-                if 'next' in params:
-                    next_page = params['next']
-                    return redirect(next_page)
-            except:
-                return redirect('dashboard')
+            # code to send otp
+            send_otp(request)
+            request.session['email'] = email
+            return redirect('otp')
         else:
             messages.error(request, 'Invalid login credentials')
             return redirect('login')
     return render(request, 'accounts/login.html')
+
+def otp(request):
+    
+    if request.method == "POST":
+        otp = request.POST['otp']
+        print('entered otp by the user is ------------ ' + otp)
+        email = request.session['email']
+        print('email of the user is ------------ ' + email)
+
+        otp_secret_key = request.session['otp_secret_key']
+        otp_valid_until = request.session['otp_valid_until']
+
+        if otp_secret_key and otp_valid_until is not None:
+            valid_until = datetime.fromisoformat(otp_valid_until)
+
+            if valid_until > datetime.now():
+                totp = pyotp.TOTP(otp_secret_key, interval=60)
+
+                print(totp.verify(otp))
+                if totp.verify(otp):
+                    user = get_object_or_404(Account, email=email)
+                    print(user)
+
+                    # TO ASSIGN CART ID TO THE LOGGED IN USER, so we can see list of crat items, selected before user is logged in, after user is logged in
+                    try:
+                        cart = Cart.objects.get(cart_id=get_cart_id(request))
+                        is_cart_item_exists = CartItem.objects.filter(cart=cart).exists()
+                        if is_cart_item_exists:
+                            # GROUPING product variation before and after user logged in
+
+                            #get product variation when user is not logged in (by using cart id)
+                            product_variation_non_logged_in = []
+                            cart_items = CartItem.objects.filter(cart=cart)
+                            for cart_item in cart_items:
+                                variation = cart_item.variation.all()
+                                product_variation_non_logged_in.append(list(variation))
+                            # print('-------------- non logged in--------')
+                            # print(product_variation_non_logged_in) #[[<Variation: Blue>, <Variation: Small>]]
+
+                            #get product variation when user is logged in (by using user)
+                            product_variation_logged_in = []
+                            cart_item_id_list = []
+                            cart_items = CartItem.objects.filter(user=user)
+                            for cart_item in cart_items:
+                                variation = cart_item.variation.all()
+                                product_variation_logged_in.append(list(variation))
+                                cart_item_id_list.append(cart_item.id)
+                            # print('---------logged in-----------')
+                            # print(product_variation_logged_in) # [[<Variation: Black>, <Variation: Medium>], [<Variation: White>, <Variation: Medium>]]
+
+                            # if product variation (when user is not logged in) present in product variation (when user is logged in),
+                            # then increment cart item quantity by 1 and assign the user field of cart item model to the logged in user
+                            # else assign the user field of cart item model to the logged in user
+                            for product_variation in product_variation_non_logged_in:
+                                if product_variation in product_variation_logged_in:
+                                    index = product_variation_logged_in.index(product_variation)
+                                    cart_item_id = cart_item_id_list[index]
+                                    cart_item = CartItem.objects.get(id=cart_item_id)
+                                    cart_item.quantity += 1
+                                    cart_item.user = user
+                                    cart_item.save()
+                                else:
+                                    cart_items_non_logged_in = CartItem.objects.filter(cart=cart)
+                                    for cart_item in cart_items_non_logged_in:
+                                        cart_item.user = user # assign the user field of cart item model to the logged in user
+                                        cart_item.save()
+                    except:
+                        pass
+
+                    auth.login(request, user)
+                    messages.success(request, 'You are now logged in')
+
+                    del request.session['otp_secret_key']
+                    del request.session['otp_valid_until']
+
+                    # CODE to handle if user hit cart checkout before LOGGED IN
+                    url = request.META.get('HTTP_REFERER') # this will give the previous url
+                    print(url) # http://127.0.0.1:8000/accounts/login/?next=/cart/checkout/
+                    try:
+                        query = requests.utils.urlparse(url).query
+                        print(query) # next=/cart/checkout/
+                        params = dict(x.split('=') for x in query.split('&'))
+                        print(params) # {'next': '/cart/checkout/'}
+                        if 'next' in params:
+                            next_page = params['next']
+                            return redirect(next_page)
+                    except:
+                        return redirect('dashboard')
+
+                    return redirect('dashboard')
+            
+                else:
+                    messages.error(request, 'Invalid OTP')
+                    return redirect('otp')
+            
+            else:
+                messages.error(request, 'OTP has expired')
+                return redirect('otp')
+
+        else:
+            messages.error(request, 'OOPS, something went wrong!')
+            return redirect('otp')
+
+    return render(request, 'accounts/otp.html')
 
 @login_required
 def logout(request):
@@ -167,6 +221,10 @@ def activate(request, uidb64, token):
 
 @login_required
 def dashboard(request):
+
+    if 'email' in request.session:
+        del request.session['email']
+
     orders = Order.objects.filter(user=request.user, is_ordered=True).order_by('-created_at')
     orders_count = orders.count()
     
