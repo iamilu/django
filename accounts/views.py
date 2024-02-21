@@ -84,8 +84,8 @@ def login(request):
         if user:
 
             # code to send otp
-            send_otp(request)
             request.session['email'] = email
+            send_otp(request)
             return redirect('otp')
         else:
             messages.error(request, 'Invalid login credentials')
@@ -96,9 +96,7 @@ def otp(request):
     
     if request.method == "POST":
         otp = request.POST['otp']
-        print('entered otp by the user is ------------ ' + otp)
         email = request.session['email']
-        print('email of the user is ------------ ' + email)
 
         otp_secret_key = request.session['otp_secret_key']
         otp_valid_until = request.session['otp_valid_until']
@@ -112,7 +110,6 @@ def otp(request):
                 print(totp.verify(otp))
                 if totp.verify(otp):
                     user = get_object_or_404(Account, email=email)
-                    print(user)
 
                     # TO ASSIGN CART ID TO THE LOGGED IN USER, so we can see list of crat items, selected before user is logged in, after user is logged in
                     try:
